@@ -1,0 +1,117 @@
+<html>
+	<head>
+		<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+	</head>
+	<body>
+  		<input id="inputYear" placeholder="2016" /> 
+  		<button id="topTenForTheYear" style="display:inline-block">Generate Chart</button>
+
+		<div id="chart_div" style="width: 900px; height: 500px"></div>
+
+		<script type="text/javascript">
+			// GLOBAL VARIABLES
+			var movieList = []
+			var studioCountMap = new Map();
+			var monthlyData = [];
+			var studioGrossData = [];
+
+			// OBJECTS
+			var movie = function(nName, nStudio, nGross, nPeakTheaters, nOpenBO, nOpenTheaters, nOpenDate, nCloseDate) {
+				this.name = nName;
+				this.studio = nStudio;
+				this.dom_gross = nGross;
+				this.peak_theaters = nPeakTheaters;
+				this.opening_bo = nOpenBO;
+				this.opening_theaters = nOpenTheaters;
+				this.opening_date = nOpenDate;
+				this.closing_date = nCloseDate;
+			};
+
+			var studioCount = function(studio, count) {
+				this.studio = studio;
+				this.count = count;
+			};
+
+			var monthlyGrosses = function(month, domesticGross) {
+				this.month = month;
+				this.domesticGross = domesticGross;
+			}
+
+			var studioGross = function(studio, gross) {
+				this.studio = studio;
+				this.gross = gross;
+			}
+
+			document.getElementById("topTenForTheYear").onclick = function() {
+				studioCountMap.clear();
+				console.log("map cleared. size " + studioCountMap.size);
+				movieList = [];
+				monthlyData = [];
+				studioGrossData = [];
+				console.log("movielist cleared. size " + movieList.size);
+	  			var year = document.getElementById("inputYear").value;
+	  			//var topN = document.getElementById("inputN").value;
+
+	  			console.log("YEAR - " + year);
+
+	  			var xhr = new XMLHttpRequest();
+				xhr.onreadystatechange = function() {
+					if(xhr.readyState === 4 && xhr.status === 200) {
+						createColumnChart(formatMovieData(xhr.responseText));
+					}
+				}
+
+				xhr.open("GET", "http://localhost:8080/BoxOfficeMojoService2.0/webapi/Movie/StudioShare/" + year, true);
+				xhr.send();
+
+	  		}
+
+			var googleChartFunc = function drawVisualization() {
+				// data
+				var year = document.getElementById("inputYear").value;
+	  			//var topN = document.getElementById("inputN").value;
+
+				var data = new google.visualization.DataTable();
+				data.addColumn('string', 'Studio');
+				data.addColumn('number', 'Gross');
+				console.log("monthlyData size: " + monthlyData.length);
+				//studioCountMap.data = data;
+
+				for (var i = 0; i < studioGrossData.length; i++) {
+					data.addRow([studioGrossData[i].studio, studioGrossData[i].gross]);
+				}
+
+	  			var graphTitle = "Monthly gross for the year " + year;
+				var options = {
+					title: graphTitle,
+					width: 1200,
+					height: 400,
+					bar: {groupWidth: "95%"},
+					legend: {position: "none"}
+				};
+
+				var chart = new google.visualization.PieChart(document.getElementById("chart_div"));
+				chart.draw(data, options);
+
+				movieList = [];		// RESET AFTER CHART IS CREATED
+				monthlyData = [];
+				studioGrossData = [];
+			}
+
+			function createColumnChart() {
+				google.charts.load('current', {'packages': ['corechart']});
+				google.charts.setOnLoadCallback(googleChartFunc);
+			}
+
+			function formatMovieData(responseData) {
+	
+				var movieData = JSON.parse(responseData);
+				console.log(responseData);
+				for(var i = 0; i < movieData.length; i++) {
+					var tempStudioGross = new studioGross(movieData[i].studio, parseInt(movieData[i].gross));
+					studioGrossData.push(tempStudioGross);
+				}
+			}
+		</script>
+	</body>
+</html>
