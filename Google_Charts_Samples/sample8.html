@@ -1,0 +1,155 @@
+<html>
+	<head>
+		<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+		<script type="text/javascript" src="js/lib/date.js"></script>
+	</head>
+	<body>
+  		<input id="inputYear" placeholder="2016" /> 
+  		<button id="topTenForTheYear" style="display:inline-block">Generate Chart</button>
+
+		<div id="chart_div" style="width: 900px; height: 500px"></div>
+
+		<script type="text/javascript">
+			// GLOBAL VARIABLES
+			var movieList = []
+			var studioCountMap = new Map();
+			var monthlyData = [];
+			var studioGrossData = [];
+			var hundredMilPerStudioForYear = [];
+			var highestGrossingMoviesForYear = [];
+
+			// OBJECTS
+			var movie = function(nName, nStudio, nGross, nPeakTheaters, nOpenBO, nOpenTheaters, nOpenDate, nCloseDate) {
+				this.name = nName;
+				this.studio = nStudio;
+				this.dom_gross = nGross;
+				this.peak_theaters = nPeakTheaters;
+				this.opening_bo = nOpenBO;
+				this.opening_theaters = nOpenTheaters;
+				this.opening_date = nOpenDate;
+				this.closing_date = nCloseDate;
+			};
+
+			var studioCount = function(studio, count) {
+				this.studio = studio;
+				this.count = count;
+			};
+
+			var monthlyGrosses = function(month, domesticGross) {
+				this.month = month;
+				this.domesticGross = domesticGross;
+			}
+
+			var studioGross = function(studio, gross) {
+				this.studio = studio;
+				this.gross = gross;
+			}
+
+			var hundredMilMoviesPerStudioForYear = function(studio, numHundredMilForYear) {
+				this.studio = studio;
+				this.numHundredMilForYear = numHundredMilForYear;
+			}
+
+			var highestGrossingMoviesOverYear = function(name,dom_gross,opening_date) {
+				this.name = name;
+				this.dom_gross = dom_gross;
+				this.opening_date = opening_date;
+			}
+
+			document.getElementById("topTenForTheYear").onclick = function() {
+				studioCountMap.clear();
+				console.log("map cleared. size " + studioCountMap.size);
+				
+				movieList = [];
+				monthlyData = [];
+				studioGrossData = [];
+				hundredMilPerStudioForYear = [];
+
+				console.log("movielist cleared. size " + movieList.size);
+	  			var year = document.getElementById("inputYear").value;
+
+	  			console.log("YEAR - " + year);
+
+	  			var xhr = new XMLHttpRequest();
+				xhr.onreadystatechange = function() {
+					if(xhr.readyState === 4 && xhr.status === 200) {
+						createColumnChart(formatMovieData(xhr.responseText));
+					}
+				}
+
+				xhr.open("GET", "http://localhost:8080/BoxOfficeMojoService2.0/webapi/Movie/HighestGrossingMoviesForYear/" + year, true);
+				xhr.send();
+
+	  		}
+
+			var googleChartFunc = function drawVisualization() {
+
+
+				// data
+				var year = document.getElementById("inputYear").value;
+	  			//var topN = document.getElementById("inputN").value;
+
+				var data = new google.visualization.DataTable();
+				data.addColumn({type:'string', id:'Highest Grossing title holders'});
+				data.addColumn({type:'string', id:'Title'});
+				data.addColumn({type:'date', id:'Start Date'});
+				data.addColumn({type:'date', id:'End Date'});
+				//studioCountMap.data = data;
+				var testArray = [];
+				for (var i = 0; i < highestGrossingMoviesForYear.length; i++) {
+					var date = highestGrossingMoviesForYear[i].opening_date.toString("yyyy,MM,dd").split(",");
+					var start_date = new Date(date[0],date[1],date[2]);
+					var end_date;
+					//start_date = new Date(highestGrossingMoviesForYear[i].opening_date.getYear(), highestGrossingMoviesForYear[i].opening_date.getMonth(),highestGrossingMoviesForYear[i].opening_date.getDayOfYear());
+
+					if((i+1) === highestGrossingMoviesForYear.length) {
+						end_date = new Date(year, 12, 31);
+						testArray.push(["Holding like a champ:",
+						highestGrossingMoviesForYear[i].name,
+						start_date, end_date]);
+					} else {
+						var endDate = highestGrossingMoviesForYear[i+1].opening_date.toString("yyyy,MM,dd").split(",");
+						end_date = new Date(endDate[0],endDate[1],endDate[2]);
+						if(start_date.getTime() !== end_date.getTime()) {
+							testArray.push(["Holding like a champ:",highestGrossingMoviesForYear[i].name,start_date, end_date]);
+						}
+					}
+				}
+				//for(var j = 0; j < testArray.length; j++) {
+					data.addRows(testArray);
+				//}
+
+	  			var graphTitle = "Number of domestic grosses > 100,000,000 per Studio in " + year;
+				var options = {
+					timeline: { groupByRowLabel: true }		// FLAG DETERMINES IF ROW NEEDS TO BE CREATED
+				};
+
+				var chart = new google.visualization.Timeline(document.getElementById("chart_div"));
+				chart.draw(data, options);
+
+				movieList = [];		// RESET AFTER CHART IS CREATED
+				monthlyData = [];
+				studioGrossData = [];
+				hundredMilPerStudioForYear = [];
+				highestGrossingMoviesForYear = [];
+			}
+
+			function createColumnChart() {
+				google.charts.load('current', {'packages': ['timeline']});
+				google.charts.setOnLoadCallback(googleChartFunc);
+			}
+
+			function formatMovieData(responseData) {
+	
+				var movieData = JSON.parse(responseData);
+				console.log(responseData);
+				for(var i = 0; i < movieData.length; i++) {
+					var date = Date.parse(movieData[i].opening_date, "yyyy-MM-dd");
+					console.log(date.toString("yyyy,MM,dd"));
+					var tempStudioCount = new highestGrossingMoviesOverYear(movieData[i].name, parseInt(movieData[i].dom_gross), date);
+					highestGrossingMoviesForYear.push(tempStudioCount);
+				}
+			}
+		</script>
+	</body>
+</html>

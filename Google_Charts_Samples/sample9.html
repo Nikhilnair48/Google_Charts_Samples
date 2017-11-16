@@ -1,0 +1,136 @@
+<html>
+	<head>
+		<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+		<script type="text/javascript" src="js/lib/date.js"></script>
+	</head>
+	<body>
+  		<input id="inputYear" placeholder="2016" /> 
+  		<button id="topTenForTheYear" style="display:inline-block">Generate Chart</button>
+
+		<div id="chart_div" style="width: 900px; height: 500px"></div>
+
+		<script type="text/javascript">
+			// GLOBAL VARIABLES
+			var movieList = []
+			var studioCountMap = new Map();
+			var monthlyData = [];
+			var studioGrossData = [];
+			var hundredMilPerStudioForYear = [];
+			var highestGrossingMoviesForYear = [];
+			var highestGrossingMoviesAcrossCountries = [];
+
+			// OBJECTS
+			var movie = function(nName, nStudio, nGross, nPeakTheaters, nOpenBO, nOpenTheaters, nOpenDate, nCloseDate) {
+				this.name = nName;
+				this.studio = nStudio;
+				this.dom_gross = nGross;
+				this.peak_theaters = nPeakTheaters;
+				this.opening_bo = nOpenBO;
+				this.opening_theaters = nOpenTheaters;
+				this.opening_date = nOpenDate;
+				this.closing_date = nCloseDate;
+			};
+
+			var studioCount = function(studio, count) {
+				this.studio = studio;
+				this.count = count;
+			};
+
+			var monthlyGrosses = function(month, domesticGross) {
+				this.month = month;
+				this.domesticGross = domesticGross;
+			}
+
+			var studioGross = function(studio, gross) {
+				this.studio = studio;
+				this.gross = gross;
+			}
+
+			var hundredMilMoviesPerStudioForYear = function(studio, numHundredMilForYear) {
+				this.studio = studio;
+				this.numHundredMilForYear = numHundredMilForYear;
+			}
+
+			var highestGrossingMoviesOverYear = function(name,dom_gross,opening_date) {
+				this.name = name;
+				this.dom_gross = dom_gross;
+				this.opening_date = opening_date;
+			}
+
+			var highestGrossingMoviesInEveryCountry = function(name,max_gross,country) {
+				this.name = name;
+				this.max_gross = max_gross;
+				this.country = country;
+			}
+
+			document.getElementById("topTenForTheYear").onclick = function() {
+				studioCountMap.clear();
+				console.log("map cleared. size " + studioCountMap.size);
+				
+				movieList = [];
+				monthlyData = [];
+				studioGrossData = [];
+				hundredMilPerStudioForYear = [];
+
+				console.log("movielist cleared. size " + movieList.size);
+	  			
+	  			var xhr = new XMLHttpRequest();
+				xhr.onreadystatechange = function() {
+					if(xhr.readyState === 4 && xhr.status === 200) {
+						createColumnChart(formatMovieData(xhr.responseText));
+					}
+				}
+
+				xhr.open("GET", "http://localhost:8080/BoxOfficeMojoService2.0/webapi/Movie/HighestGrossingByCountry" , true);
+				xhr.send();
+
+	  		}
+
+			var googleChartFunc = function drawVisualization() {
+				// data
+				var year = document.getElementById("inputYear").value;
+	  			//var topN = document.getElementById("inputN").value;
+				var data = new google.visualization.DataTable();
+				data.addColumn({type:'string', id:'Country'});
+				data.addColumn({type:'string', id:'Title'});
+				//studioCountMap.data = data;
+				var testArray = [];
+				for (var i = 0; i < highestGrossingMoviesAcrossCountries.length; i++) {
+					testArray.push([highestGrossingMoviesAcrossCountries[i].country, highestGrossingMoviesAcrossCountries[i].name + " : " + highestGrossingMoviesAcrossCountries[i].max_gross]);
+				}
+				//for(var j = 0; j < testArray.length; j++) {
+					data.addRows(testArray);
+				//}
+
+	  			var graphTitle = "Highest grossing movies by country ";
+				var options = {};
+
+				var chart = new google.visualization.GeoChart(document.getElementById("chart_div"));
+				chart.draw(data, options);
+
+				movieList = [];		// RESET AFTER CHART IS CREATED
+				monthlyData = [];
+				studioGrossData = [];
+				hundredMilPerStudioForYear = [];
+				highestGrossingMoviesForYear = [];
+				highestGrossingMoviesAcrossCountries = [];
+			}
+
+			function createColumnChart() {
+				google.charts.load('current', {'packages': ['geochart'], 'mapsApiKey': 'AIzaSyB1zfPmdu25hRQwsqQHvSDqQQU27HQi7y4'});
+				google.charts.setOnLoadCallback(googleChartFunc);
+			}
+
+			function formatMovieData(responseData) {
+	//highestGrossingMoviesInEveryCountry
+	//array - highestGrossingMoviesAcrossCountries
+				var movieData = JSON.parse(responseData);
+				console.log(responseData);
+				for(var i = 0; i < movieData.length; i++) {
+					var tempStudioCount = new highestGrossingMoviesInEveryCountry(movieData[i].name, movieData[i].max_gross, movieData[i].country);
+					highestGrossingMoviesAcrossCountries.push(tempStudioCount);
+				}
+			}
+		</script>
+	</body>
+</html>

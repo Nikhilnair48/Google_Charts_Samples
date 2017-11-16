@@ -110,7 +110,7 @@
 				movieData = JSON.parse(responseData);
 				console.log(responseData);
 				for(var i = 0; i < movieData.length; i++) {
-					var tempMovie = new movie(movieData[i].PK.name, movieData[i].studio, movieData[i].PK.dom_gross, movieData[i].peak_theaters, movieData[i].opening_bo, movieData[i].opening_theaters, movieData[i].opening_date, movieData[i].closing_date);
+					var tempMovie = new movie(movieData[i].name, movieData[i].studio, movieData[i].dom_gross, movieData[i].peak_theaters, movieData[i].opening_bo, movieData[i].opening_theaters, movieData[i].opening_date, movieData[i].closing_date);
 
 					movieList.push(tempMovie);
 
